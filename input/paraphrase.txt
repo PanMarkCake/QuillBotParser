@@ -1,0 +1,5 @@
+#### Script-Based Automation
+
+Script-based automation typically relies on languages like Python, Perl, or Bash to execute repetitive network tasks. These scripts can automate device provisioning, configuration changes, monitoring, and other operations by interfacing directly with network devices through command-line interfaces (CLIs), APIs, or management protocols such as SSH and SNMP.
+
+Network engineers often use scripts to quickly address immediate needs or automate small, well-defined tasks. While script-based automation offers flexibility and speed, it can become challenging to manage and scale as complexity grows. Scripts may lack proper documentation, error handling, or integration with broader operations, resulting in script sprawl and maintenance difficulties.
