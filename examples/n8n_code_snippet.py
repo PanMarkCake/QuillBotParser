@@ -3,12 +3,12 @@ n8n Code (Python) Node - Ready-to-Paste Code Snippet
 
 Copy and paste the code below into your n8n Code (Python) node.
 
-VERSION 1: Reads from input file (like paraphrase.py)
+VERSION 1: Receives markdown from n8n node, paraphrases, returns output (no files)
 VERSION 2: Reads from n8n items (from previous node)
 """
 
 # ============================================================================
-# VERSION 1: Read from input file (input/paraphrase.txt)
+# VERSION 1: Receive markdown from n8n node, paraphrase, return as output (no files)
 # ============================================================================
 VERSION_1_FILE_INPUT = """
 import os
@@ -21,68 +21,55 @@ sys.path.insert(0, project_path)
 
 from quillbot.bot import Quillbot
 
+# Get markdown text from n8n node input
+# Expect: items[0]['json']['text'] or items[0]['json']['markdown']
+text = items[0]['json'].get('text') or items[0]['json'].get('markdown', '')
+if isinstance(text, dict):
+    text = text.get('text', '') or text.get('markdown', '')
+if not text:
+    text = items[0]['json'].get('content', '') or items[0]['json'].get('body', '')
+if isinstance(text, dict):
+    text = text.get('text', '') or text.get('markdown', '') or str(text)
+
+if not text or not str(text).strip():
+    items[0]['json']['success'] = False
+    items[0]['json']['result'] = None
+    items[0]['json']['error'] = 'No markdown text in input. Use items[0][\'json\'][\'text\'] or [\'markdown\']'
+    return items
+
+text = str(text).strip()
+
 # Configuration from environment variables or defaults
 headless = os.getenv('HEADLESS', 'True').lower() == 'true'
 user_data_dir = os.getenv('CHROME_USER_DATA_DIR')
 if not user_data_dir:
-    # Default Windows path
     user_data_dir = os.path.join(
         os.path.expanduser('~'),
         'AppData', 'Local', 'Google', 'Chrome', 'User Data'
     )
-
 profile_dir = os.getenv('CHROME_PROFILE_DIR', 'Default')
 copy_profile = os.getenv('COPY_PROFILE', 'True').lower() == 'true'
 
-# Initialize result fields in items
 items[0]['json']['success'] = False
 items[0]['json']['result'] = None
 items[0]['json']['error'] = None
 
 bot = None
 try:
-    # Read input file
-    input_file = os.path.join(project_path, 'input', 'paraphrase.txt')
-    if not os.path.exists(input_file):
-        items[0]['json']['error'] = f'Input file not found: {input_file}'
-        return items
-    
-    with open(input_file, 'r', encoding='utf-8') as f:
-        text = f.read().strip()
-    
-    if not text:
-        items[0]['json']['error'] = 'Input file is empty'
-        return items
-    
-    # Initialize bot
     bot = Quillbot(
         headless=headless,
         user_data_dir=user_data_dir,
         profile_directory=profile_dir,
         copy_profile=copy_profile
     )
-    
-    # Paraphrase the text
     result = bot.paraphrase(text)
-    
-    # Save to result file
-    result_file = os.path.join(project_path, 'result', 'paraphrased.txt')
-    os.makedirs(os.path.dirname(result_file), exist_ok=True)
-    with open(result_file, 'w', encoding='utf-8') as f:
-        f.write(result)
-    
-    # Return success with result
     items[0]['json']['result'] = result
     items[0]['json']['success'] = True
-    items[0]['json']['input_text'] = text  # Include original text for reference
-    
+    items[0]['json']['original_text'] = text
 except Exception as e:
-    # Handle errors
     items[0]['json']['error'] = str(e)
     items[0]['json']['success'] = False
-    
 finally:
-    # Always cleanup
     if bot:
         try:
             bot.close()
@@ -230,7 +217,7 @@ return items
 
 if __name__ == "__main__":
     print("=" * 80)
-    print("VERSION 1: Read from input file (input/paraphrase.txt)")
+    print("VERSION 1: Receive markdown from n8n node, paraphrase, return output (no files)")
     print("=" * 80)
     print(VERSION_1_FILE_INPUT)
     
